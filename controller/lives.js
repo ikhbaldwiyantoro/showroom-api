@@ -41,26 +41,33 @@ const Lives = {
     try {
       const { roomId, cookies } = req.params;
 
-      const profileUrl = `${ROOM}/profile?room_id=${roomId}`;
-      const profileApi = await fetchService(profileUrl, res);
-      const profile = profileApi.data;
-
-      const titleUrl = `${LIVE}/telop?room_id=${roomId}`;
-      const infoUrl = `${LIVE}/live_info?room_id=${roomId}`;
-      const titleApi = await fetchService(titleUrl, res, {
+      const profileApi = await fetchService(`${ROOM}/profile?room_id=${roomId}`, res);
+      const infoApi = await fetchService(`${LIVE}/live_info?room_id=${roomId}`, res);
+      const titleApi = await fetchService(`${LIVE}/telop?room_id=${roomId}`, res, {
         headers: {
           Cookie: cookies,
         },
       });
-      const infoApi = await fetchService(infoUrl, res);
-      console.log(profile)
       const title = titleApi.data.telop;
+      const profile = profileApi.data;
       const live_info = infoApi.data
+      const isPremiumLive = profile.premium_room_type === 1 ? true : false;
+
+      let roomLives = []
+
+      if (isPremiumLive) {
+        const roomLiveApi = await fetchService("https://jkt48-showroom-api.vercel.app/api/rooms/onlives", res);
+        roomLives.push(roomLiveApi.data)
+        const data = roomLives[0].data[0]
+        roomLives.push(data)
+      }
+      console.log(roomLives[0].data[0].bcsvr_key)
 
       // Destrurct response profile and title
       const profileData = (profile, title) => {
         const name = `${profile.room_name}is Live on JKT48 SHOWROOM`;
         const share = `https://twitter.com/intent/tweet?text=${name}%0ahttps://jkt48-showroom.vercel.app/room/${profile.room_url_key}/${roomId}`;
+        
         return {
           roomId: profile.room_id,
           room_name: profile.room_name,
@@ -71,10 +78,10 @@ const Lives = {
           current_live_started_at: profile.current_live_started_at,
           share_url_live: profile.share_url_live,
           share_url_local: share,
-          isPremiumLive: profile.premium_room_type === 1 ? true : false,
+          isPremiumLive,
           websocket: {
             host: live_info.bcsvr_host,
-            key: live_info.bcsvr_key,
+            key: isPremiumLive ? roomLives[0].data[0].bcsvr_key : live_info.bcsvr_key,
             live_id: live_info.live_id
           }
         };
