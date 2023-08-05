@@ -61,7 +61,6 @@ const Lives = {
         const data = roomLives[0].data[0]
         roomLives.push(data)
       }
-      console.log(roomLives[0].data[0].bcsvr_key)
 
       // Destrurct response profile and title
       const profileData = (profile, title) => {
